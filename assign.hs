@@ -97,17 +97,17 @@ bbigStep :: (B,Memoria) -> Bool
 bbigStep (TRUE,s)  = True
 bbigStep (FALSE,s) = False
 bbigStep (Not b,s) 
-   | bbigStep (b,s) == True     = False
+   | bbigStep (b,s)             = False
    | otherwise                  = True 
 
 --bbigStep (And b1 b2,s )  =
 bbigStep (And b1 b2,s)
-   | bbigStep (b1, s) == True   = bbigStep (b2,s)
+   | bbigStep (b1, s)           = bbigStep (b2,s)
    | otherwise                  = False
 
 --bbigStep (Or b1 b2,s )  =
 bbigStep (Or b1 b2,s)
-   | bbigStep (b1,s) == True    = True
+   | bbigStep (b1,s)            = True
    | otherwise                  = bbigStep (b2,s)
 
 --bbigStep (Leq e1 e2) =
@@ -122,14 +122,12 @@ cbigStep (Skip,s) = (Skip,s)
 
 -- cbigStep (If b c1 c2,s)  
 cbigStep (If b c1 c2,s)
-   | bbigStep (b,s) == True     = cbigStep (c1,s)
+   | bbigStep (b,s)             = cbigStep (c1,s)
    | otherwise                  = cbigStep (c2,s)
 
---cbigStep (Seq c1 c2,s)  
-cbigStep (Seq c1 c2,s)
-   | c1 == Skip                 = cbigStep (c2,s)
-   | otherwise                  = cbigStep (c2,s1)
-   where (c1,s1) = cbigStep (c1,s)
+--cbigStep (Seq c1 c2,s)
+cbigStep (Seq c1 c2,s) = cbigStep (c2,s1)
+   where (c,s1) = cbigStep (c1,s)
 
 --cbigStep (Atrib (Var x) e,s) 
 cbigStep (Atrib (Var x) e,s) =
@@ -138,12 +136,16 @@ cbigStep (Atrib (Var x) e,s) =
 
 --cbigStep (While b c, s) 
 cbigStep (While b c, s)
-   | bbigStep (b,s) == True     = cbigStep (Seq c (While b c),s)
+   | bbigStep (b,s)             = cbigStep (Seq c (While b c),s)
    | otherwise                  = cbigStep (Skip,s)
+
+-- cbigStep (While b c,s)
+--  | cbigStep (While TRUE c,s) = cbigStep (Seq (c,s) (cbigStep While b (cbigStep (c,s))),s)
+--  | cbigStep (While FALSE c,s) = cbigStep (c,s)
 
 --cbigStep (DoWhile c b,s)
 cbigStep (DoWhile c b,s)
-   | bbigStep (b,s) == True     = cbigStep (Seq c (While b c),s)
+   | bbigStep (b,s)             = cbigStep (Seq c (While b c),s)
    | otherwise                  = cbigStep (c ,s)
 
 --cbigStep (Loop e c)  --- Recebe uma expressão "e" e um comando "c". Repete "e" vezes o comando "c"
@@ -206,6 +208,9 @@ testec1 :: C
 testec1 = (Seq (Seq (Atrib (Var "z") (Var "x")) (Atrib (Var "x") (Var "y"))) 
                (Atrib (Var "y") (Var "z")))
 
+testec3 :: C
+testec3 = Seq (Atrib (Var "z") (Num 1)) (Atrib (Var "x") (Var "z"))
+
 fatorial :: C
 fatorial = (Seq (Atrib (Var "y") (Num 1))
                 (While (Not (Igual (Var "x") (Num 1)))
@@ -219,27 +224,31 @@ exSigma3 = [("x",3), ("y",0), ("z",0)]
 -- --- * Loop 
 loopEx :: C
 loopEx = Loop (Num 3) (Atrib (Var "y") (Soma (Var "y") (Num 1)))
--- --- * Dupla Atribuição
-duplaAtrib :: C
-duplaAtrib = (DAtrrib (Var "x") (Var "y") (Num 1) (Num 2))
+   -- --- * Dupla Atribuição
+duplaAtribEx :: C
+duplaAtribEx = (DAtrrib (Var "x") (Var "y") (Num 1) (Num 2))
 --- * Do While
 doWhileEx :: C
-doWhileEx = (DoWhile (Atrib (Var "x") (Soma (Var "x") (Num 1))) (Leq (Var "x") (Num 3)))
+doWhileEx = (DoWhile (Atrib (Var "x") (Soma (Var "x") (Num 1))) (Leq (Var "x") (Num 8)))
 
 
-main :: IO ()
-main = do
-    let initialState1 = exSigma3
-    let (finalCommand1, finalMemory1) = cbigStep (loopEx, initialState1)
-    putStrLn "Loop Example - Final Memory:"
-    print finalMemory1
+-- main :: IO ()
+-- main = do
+--    cbigStep (loopEx, exSigma3)
+--    cbigStep (duplaAtrib, exSigma3)
+--    cbigStep (doWhileEx, exSigma3)
 
-    let initialState2 = exSigma2
-    let (finalCommand2, finalMemory2) = cbigStep (duplaAtrib, initialState2)
-    putStrLn "Dupla Atribuição Example - Final Memory:"
-    print finalMemory2
+    -- let initialState1 = exSigma3
+    -- let (finalCommand1, finalMemory1) = cbigStep (loopEx, initialState1)
+    -- putStrLn "Loop Example - Final Memory:"
+    -- print finalMemory1
 
-    let initialState3 = exSigma3
-    let (finalCommand3, finalMemory3) = cbigStep (doWhileEx, initialState3)
-    putStrLn "Do While Example - Final Memory:"
-    print finalMemory3
+    -- let initialState2 = exSigma2
+    -- let (finalCommand2, finalMemory2) = cbigStep (duplaAtrib, initialState2)
+    -- putStrLn "Dupla Atribuição Example - Final Memory:"
+    -- print finalMemory2
+
+    -- let initialState3 = exSigma3
+    -- let (finalCommand3, finalMemory3) = cbigStep (doWhileEx, initialState3)
+    -- putStrLn "Do While Example - Final Memory:"
+    -- print finalMemory3
