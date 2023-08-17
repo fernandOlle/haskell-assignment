@@ -141,6 +141,11 @@ cbigStep (Loop e c,s)
    | ebigStep (e,s) == 0        = cbigStep (Skip,s)
    | otherwise                  = cbigStep (Seq c (Loop (Sub e (Num 1)) c),s)
 
+-- cbigStep (Loop e c,s)
+--   | bbigStep (Leq (Num 1) e ,s)= cbigStep (Skip,s)
+--   | otherwise                  = cbigStep (Seq c (Loop (Sub e (Num 1)) c),s)
+
+
 --cbigStep (DAtrrib e1 e2 e3 e4)  -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
 cbigStep (DAtrrib e1 e2 e3 e4,s)
    | e1 == e2                   = cbigStep (Atrib e1 e3,s)
