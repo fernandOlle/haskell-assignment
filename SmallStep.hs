@@ -1,3 +1,4 @@
+import Text.XHtml (small)
 -- Definição das árvore sintática para representação dos programas:
 
 data E = Num Int
@@ -71,7 +72,7 @@ procuraVar ((s,i):xs) v
 mudaVar :: Memoria -> String -> Int -> Memoria
 mudaVar [] v n = error ("Variavel " ++ v ++ " nao definida no estado")
 mudaVar ((s,i):xs) v n
-  | s == v     = ((s,n):xs)
+  | s == v     = (s,n):xs
   | otherwise  = (s,i): mudaVar xs v n
 
 
@@ -84,77 +85,58 @@ mudaVar ((s,i):xs) v n
 smallStepE :: (E, Memoria) -> (E, Memoria)
 smallStepE (Var x, s)                  = (Num (procuraVar s x), s)
 smallStepE (Soma (Num n1) (Num n2), s) = (Num (n1 + n2), s)
-smallStepE (Soma (Num n) e, s)         = let (el,sl) = smallStepE (e,s)
-                                          in (Soma (Num n) el, sl)
-smallStepE (Soma e1 e2,s)              = let (el,sl) = smallStepE (e1,s)
-                                          in (Soma el e2,sl)
+smallStepE (Soma (Num n) e, s)         = let (el,sl) = smallStepE (e,s) in (Soma (Num n) el, sl)
+smallStepE (Soma e1 e2,s)              = let (el,sl) = smallStepE (e1,s) in (Soma el e2,sl)
 
 smallStepE (Mult (Num n1) (Num n2), s) = (Num (n1 * n2), s)
-smallStepE (Mult (Num n) e, s)         = let (el,sl) = smallStepE (e,s)
-                                          in (Mult (Num n) el, sl)
-smallStepE (Mult e1 e2,s)              = let (el,sl) = smallStepE (e1,s)
-                                          in (Mult el e2,sl)
+smallStepE (Mult (Num n) e, s)         = let (el,sl) = smallStepE (e,s) in (Mult (Num n) el, sl)
+smallStepE (Mult e1 e2,s)              = let (el,sl) = smallStepE (e1,s) in (Mult el e2,sl)
 
-smallStepE (Sub (Num n1) (Num n2), s) = (Num (n1 + n2), s)
-smallStepE (Sub (Num n) e, s)          = let (el,sl) = smallStepE (e,s)
-                                          in (Sub (Num n) el, sl)
-smallStepE (Sub e1 e2,s)               = let (el,sl) = smallStepE (e1,s)
-                                          in (Sub el e2,sl)
-
+smallStepE (Sub (Num n1) (Num n2), s) = (Num (n1 - n2), s)
+smallStepE (Sub (Num n) e, s)         = let (el,sl) = smallStepE (e,s) in (Sub (Num n) el, sl)
+smallStepE (Sub e1 e2,s)              = let (el,sl) = smallStepE (e1,s) in (Sub el e2,sl)
 
 smallStepB :: (B,Memoria) -> (B, Memoria)
 --NOT
-smallStepB (Not FALSE,s) = (TRUE,s)
 smallStepB (Not TRUE,s) = (FALSE,s)
-smallStepB (Not b,s) = let(b1,s1) = smallStepB(b,s)
-                                    in(Not b1,s1)
+smallStepB (Not FALSE,s) = (TRUE,s)
+smallStepB (Not b,s) = let(b1,s1) = smallStepB(b,s) in(Not b1,s1)
 --AND
-smallStepB (And FALSE b,s) = (FALSE,s)
 smallStepB (And TRUE b,s) = (b,s)
-smallStepB (And b1 b2,s) = let(b,s1) = smallStepB(b1,s)
-                                       in(And b b2,s1)
+smallStepB (And FALSE b,s) = (FALSE,s)
+smallStepB (And b1 b2,s) = if b1 == FALSE then (And FALSE b2,s) else (And TRUE b1,s)
 --OR
 smallStepB (Or FALSE b,s) = (b,s)
 smallStepB (Or TRUE b,s) = (TRUE,s)
-smallStepB (Or b1 b2,s) = let(b,s1) = smallStepB(b1,s)
-                                 in(Or b b2,s1) 
+smallStepB (Or b1 b2,s) = if b1 == TRUE then (Or TRUE b2,s) else (Or FALSE b1,s)
 --LEQ
-smallStepB (Leq (Num n1) (Num n2),s) = if (n1<=n2) then (TRUE,s) else (FALSE,s)                                     
-smallStepB (Leq (Num n1) e2,s) = let(e,s1) = smallStepE(e2,s)
-                                          in(Leq (Num n1) e,s1)
-smallStepB (Leq e1 e2,s) = let(n1,s1) = smallStepE(e1,s);
-                                          in(Leq n1 e2, s1)
+smallStepB (Leq (Num n1) (Num n2),s) = if n1<=n2 then (TRUE,s) else (FALSE,s)                                     
+smallStepB (Leq (Num n1) e2,s) = let(e,s1) = smallStepE(e2,s) in(Leq (Num n1) e,s1)
+smallStepB (Leq e1 e2,s) = let(n1,s1) = smallStepE(e1,s) in(Leq n1 e2, s1)
 --EQ 
-smallStepB (Igual (Num n1) (Num n2),s) = if (n1==n2) then (TRUE,s) else (FALSE,s)                                     
-smallStepB (Igual (Num n1) e2,s) = let(e,s1) = smallStepE(e2,s)
-                                             in(Igual (Num n1) e,s1)
-smallStepB (Igual e1 e2,s) = let(n1,s1) = smallStepE(e1,s);
-                                             in(Igual n1 e2, s1)
+smallStepB (Igual (Num n1) (Num n2),s) = if n1==n2 then (TRUE,s) else (FALSE,s)                                     
+smallStepB (Igual (Num n1) e2,s) = let(e,s1) = smallStepE(e2,s) in(Igual (Num n1) e,s1)
+smallStepB (Igual e1 e2,s) = let(n1,s1) = smallStepE(e1,s) in(Igual n1 e2, s1)
 
 smallStepC :: (C,Memoria) -> (C,Memoria)
 --IF
 smallStepC (If FALSE c1 c2,s) = (c2,s)
 smallStepC (If TRUE c1 c2,s) = (c1,s)
-smallStepC (If b c1 c2,s) = let(b1,s1) = smallStepB(b,s)
-                                          in(If b1 c1 c2,s1)
+smallStepC (If b c1 c2,s) = let(b1,s1) = smallStepB(b,s) in(If b1 c1 c2,s1)
 --SEQ 
 smallStepC (Seq Skip c,s) = (c,s)                            
-smallStepC (Seq c1 c2,s) = let(c,s1) = smallStepC(c1,s)
-                                       in(Seq c c2,s1)
+smallStepC (Seq c1 c2,s) = let(c,s1) = smallStepC(c1,s) in(Seq c c2,s1)
 --ATRIB  
-smallStepC (Atrib (Var x) (Num n),s) = let(sf) = (mudaVar s x n)
-                                                in(Skip,sf)
-smallStepC (Atrib (Var x) e1,s) = let(e,s1) = smallStepE(e1,s)
-                                             in(Atrib (Var x) e,s1)
+smallStepC (Atrib (Var x) (Num n),s) = let sf = mudaVar s x n in(Skip,sf)
+smallStepC (Atrib (Var x) e1,s) = let(e,s1) = smallStepE(e1,s) in(Atrib (Var x) e,s1)
 --While 
 smallStepC(While b c,s) = (If b (Seq c(While b c)) Skip,s)
 --DoWhile
 smallStepC(DoWhile c b,s) = (Seq c (If b (While b c) Skip), s)
-
---smallStepC (Loop e c)  --- Recebe uma expressão "e" e um comando "c". Repete "e" vezes o comando "c"
---smallStepC (DAtrrib e1 e2 e3 e4)  -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
-
-
+--smallStepC (Loop e c,s)  --- Recebe uma expressão "e" e um comando "c". Repete "e" vezes o comando "c"
+smallStepC(Loop (Num e) c,s) = if e>0 then (Seq c (Loop (Num (e-1)) c),s) else (Skip,s)
+--smallStepC (DAtrrib e1 e2 e3 e4,s)  -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
+smallStepC(DAtrrib (Var e1) (Var e2) e3 e4,s) = (Seq (Atrib (Var e1) e3) (Atrib (Var e2) e4),s)
 
 ----------------------
 --  INTERPRETADORES
@@ -168,7 +150,7 @@ isFinalE _       = False
 
 
 interpretadorE :: (E,Memoria) -> (E, Memoria)
-interpretadorE (e,s) = if (isFinalE e) then (e,s) else interpretadorE (smallStepE (e,s))
+interpretadorE (e,s) = if isFinalE e then (e,s) else interpretadorE (smallStepE (e,s))
 
 --- Interpretador para expressões booleanas
 
@@ -181,7 +163,7 @@ isFinalB _       = False
 -- Descomentar quanto a função smallStepB estiver implementada:
 
 interpretadorB :: (B,Memoria) -> (B, Memoria)
-interpretadorB (b,s) = if (isFinalB b) then (b,s) else interpretadorB (smallStepB (b,s))
+interpretadorB (b,s) = if isFinalB b then (b,s) else interpretadorB (smallStepB (b,s))
 
 
 -- Interpretador da Linguagem Imperativa
@@ -193,7 +175,7 @@ isFinalC _       = False
 -- Descomentar quando a função smallStepC estiver implementada:
 
 interpretadorC :: (C,Memoria) -> (C, Memoria)
-interpretadorC (c,s) = if (isFinalC c) then (c,s) else interpretadorC (smallStepC (c,s))
+interpretadorC (c,s) = if isFinalC c then (c,s) else interpretadorC (smallStepC (c,s))
 
 
 --------------------------------------
@@ -223,7 +205,7 @@ progExp1 = Soma (Num 3) (Soma (Var "x") (Var "y"))
 --programa simples com DoWhile
 
 progDW :: C
-progDW = (DoWhile (Atrib (Var "y")(Soma(Var "y")(Num 1))) (Not (Igual (Var "y")(Var "x"))))
+progDW = DoWhile (Atrib (Var "y")(Soma(Var "y")(Num 1))) (Not (Igual (Var "y")(Var "x")))
 
 ---
 --- para rodar:
@@ -252,21 +234,35 @@ progDW = (DoWhile (Atrib (Var "y")(Soma(Var "y")(Num 1))) (Not (Igual (Var "y")(
 
 
 teste1 :: B
-teste1 = (Leq (Soma (Num 3) (Num 3))  (Mult (Num 2) (Num 3)))
+teste1 = Leq (Soma (Num 3) (Num 3))  (Mult (Num 2) (Num 3))
 
 teste2 :: B
-teste2 = (Leq (Soma (Var "x") (Num 3))  (Mult (Num 2) (Num 3)))
+teste2 = Leq (Soma (Var "x") (Num 3))  (Mult (Num 2) (Num 3))
 
 
 ---
 -- Exemplos de Programas Imperativos:
 
+
+exSigmaC :: Memoria
+exSigmaC = [ ("x", 10), ("y",0), ("z",0)]
+
+
 testec1 :: C
-testec1 = (Seq (Seq (Atrib (Var "z") (Var "x")) (Atrib (Var "x") (Var "y"))) 
-               (Atrib (Var "y") (Var "z")))
+testec1 = Seq (Seq (Atrib (Var "z") (Var "x")) (Atrib (Var "x") (Var "y"))) 
+               (Atrib (Var "y") (Var "z"))
 
 fatorial :: C
-fatorial = (Seq (Atrib (Var "y") (Num 1))
+fatorial = Seq (Atrib (Var "y") (Num 1))
                 (While (Not (Igual (Var "x") (Num 1)))
                        (Seq (Atrib (Var "y") (Mult (Var "y") (Var "x")))
-                            (Atrib (Var "x") (Sub (Var "x") (Num 1))))))
+                            (Atrib (Var "x") (Sub (Var "x") (Num 1)))))
+
+
+progLoop :: C
+progLoop = Loop (Num 4) (Atrib (Var "x")(Soma(Var "x")(Num 1)))
+
+progDA :: C
+progDA = DAtrrib (Var "x") (Var "y") (Num 1) (Num 2)
+
+-- interpretadorB (smallStepB(Igual (Var "y")(Var "temp") ,exSigma ))
