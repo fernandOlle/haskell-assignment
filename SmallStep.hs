@@ -104,11 +104,11 @@ smallStepB (Not b,s) = let(b1,s1) = smallStepB(b,s) in(Not b1,s1)
 --AND
 smallStepB (And TRUE b,s) = (b,s)
 smallStepB (And FALSE b,s) = (FALSE,s)
-smallStepB (And b1 b2,s) = if b1 == FALSE then (And FALSE b2,s) else (And TRUE b1,s)
+smallStepB (And b1 b2,s) = if b1 == FALSE then (FALSE,s) else (And TRUE b2,s)
 --OR
 smallStepB (Or FALSE b,s) = (b,s)
 smallStepB (Or TRUE b,s) = (TRUE,s)
-smallStepB (Or b1 b2,s) = if b1 == TRUE then (Or TRUE b2,s) else (Or FALSE b1,s)
+smallStepB (Or b1 b2,s) = if b1 == TRUE then (TRUE,s) else (Or FALSE b2,s)
 --LEQ
 smallStepB (Leq (Num n1) (Num n2),s) = if n1<=n2 then (TRUE,s) else (FALSE,s)                                     
 smallStepB (Leq (Num n1) e2,s) = let(e,s1) = smallStepE(e2,s) in(Leq (Num n1) e,s1)
@@ -265,4 +265,15 @@ progLoop = Loop (Num 4) (Atrib (Var "x")(Soma(Var "x")(Num 1)))
 progDA :: C
 progDA = DAtrrib (Var "x") (Var "y") (Num 1) (Num 2)
 
--- interpretadorB (smallStepB(Igual (Var "y")(Var "temp") ,exSigma ))
+-- interpretadorB (smallStepB(Igual (Var "y")(Var "z") ,exSigma ))
+
+exSigmaB :: Memoria
+exSigmaB = [ ("x", 10), ("y",0), ("z",0)]
+
+-- ghci> interpretadorB (smallStepB(Or (Igual (Var "y")(Var "x"))TRUE ,exSigmaB ))  -- TRUE
+-- ghci> interpretadorB (smallStepB(Or FALSE(Igual (Var "y")(Var "z")) ,exSigmaB ))  -- TRUE
+-- ghci> interpretadorB (smallStepB(Or FALSE(Igual (Var "y")(Var "x")) ,exSigmaB ))  -- FALSE
+
+-- ghci> interpretadorB (smallStepB(And (Igual (Var "y")(Var "z"))TRUE ,exSigmaB ))  -- TRUE
+-- ghci> interpretadorB (smallStepB(And FALSE(Igual (Var "y")(Var "x")) ,exSigmaB ))  -- FALSE
+-- ghci> interpretadorB (smallStepB(And FALSE(Igual (Var "y")(Var "z")) ,exSigmaB ))   -- FALSE
